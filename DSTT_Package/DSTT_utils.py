@@ -345,7 +345,7 @@ def group_data_series_len(X_train, y_train, series_len):
     log('X_train_series.shape:', X_train_series.shape)
     return [np.array(X_train_series), np.array(y_train_series)]
 
-
+'''
 def load_training_and_testing_data(num_hours,interval_type='hourly'):
     s = interval_type[0]
     train_file_name ='solar_wind_parameters_data_' + str(num_hours) + '_'+ interval_type + '_train.csv'
@@ -431,6 +431,112 @@ def load_training_and_testing_data(num_hours,interval_type='hourly'):
     for i in range (len(test_data)):
         x_dates.append(get_date_from_days_year_split(test_data['DOY'][i], test_data['YEAR'][i]))
     return [ X_train,y_train, X_test, y_test, X_valid, y_valid, x_dates]
+'''
+def load_training_and_testing_data(num_hours,interval_type='hourly'):
+    num_hours = str(num_hours) 
+    day_dir = interval_type[0]
+    # Set paths to the training and testing data files
+    train_file_name ='solar_wind_parameters_data_' + str(num_hours) + '_'+ interval_type + '_train.csv'
+    test_file_name ='solar_wind_parameters_data_' + str(num_hours) + '_'+ interval_type + '_test.csv'
+    data_file_full = 'solar_wind_parameters_data_'+ str(num_hours) + '_' + interval_type + '_all.csv'
+
+    tr_file = data_dir + os.sep + 'custom' + os.sep + num_hours + day_dir + os.sep +  train_file_name
+    ts_file = data_dir + os.sep + 'custom' + os.sep + num_hours + day_dir + os.sep + test_file_name
+    log('Loading required data from file:', tr_file)
+    if not os.path.exists(tr_file):
+        log('Required data file does not exist:', tr_file)
+        exit()
+    if not os.path.exists(ts_file):
+        log('Required data file does not exist:', tr_file)
+        exit()
+                
+    all_data = pd.read_csv(tr_file)
+    # all_data = all_data.drop(columns=['Unnamed: 0'])
+
+    # all_data = all_data.loc[all_data['YEAR'] != 2021].reset_index()
+    # all_data = all_data[:]
+    # if 'index' in all_data.columns:
+    #     all_data = all_data.drop('index',axis=1) 
+    
+    # log('Loading required data from file:', ts_file)
+    # test_data_all = pd.read_csv(ts_file,dtype=None)
+                                              
+    # log('test_data_all[Timestamp][0]', test_data_all['Timestamp'][0],verbose=False)
+    # log('test_data_all[Timestamp][last]', test_data_all['Timestamp'][len(test_data_all)-1])
+
+    # test_filter=['2021-10-' + str(i) +'-' for i in range(1,32)]
+    # test_filter.extend(['2021-11-' + str(i) +'-' for i in range(1,31)])
+    # test_data = test_data_all.loc[test_data_all['Timestamp'].str.contains('|'.join(test_filter))].reset_index()
+    # log('test_data.max:', np.array(test_data[dst_col].values).max())
+    # log('test_data.min:', np.array(test_data[dst_col].values).min())
+    # log('1 test_data[Timestamp][0]', test_data['Timestamp'][0])
+    # log('1 test_data[Timestamp][last]', test_data['Timestamp'][len(test_data)-1])
+    
+    # Extract all param except the Dst values
+    test_data = pd.read_csv(ts_file)
+
+    # To extract the original Dst values for the test data
+    orig_y_test = test_data[dst_col].values
+    # log('all_data.columns:', all_data.columns, verbose=False)
+    # data_add = test_data.drop(columns=[dst_col])
+    # all_data = pd.concat([all_data,data_add])
+    # all_data.sort_values(by=['Timestamp'])
+
+    cols = all_data.columns
+    # print('cols:', cols)
+    # ,Timestamp,YEAR,DOY,HR,Scalar_B,BX_GSE_GSM,BY_GSE,BZ_GSE,BY_GSM,BZ_GSM,Proton_Density,SW_Plasma_Temperature,SW_Plasma_Speed
+    features = ['Scalar_B', 'BX_GSE_GSM', 'BY_GSE', 'BZ_GSE', 'BY_GSM', 'BZ_GSM', 'Proton_Density', 'SW_Plasma_Temperature', 'SW_Plasma_Speed']
+    # features = ['B_IMF', 'B_GSE', 'B_GSM', 'SW_Temp', 'SW_Speed', 'P_Pressure', 'E_Field']
+    # columns_names  =['Scalar_B',  'BZ_GSE', 'SW_Plasma_Temperature',  'SW_Proton_Density','SW_Plasma_Speed', 'Flow_pressure', 'E_elecrtric_field']
+    # features = columns_names
+    f_index = dst_col    
+    norm_data = all_data[f_index]
+    print('norm_data:', norm_data)
+    fig_optional_name = ''
+    
+    train_percent = int(float(80./100. * len(all_data))) 
+    test_val_precent = int((len(all_data) - train_percent)/2)-50
+    # print('train_precent:', train_percent, 'validate:', test_val_precent, 'test:', test_val_precent)
+    
+    train_data = all_data[:]
+    valid_data = all_data[train_percent:-test_val_precent]
+    X_train = train_data[features].values
+    X_train = reshape_x_data(X_train)
+    y_train = reshape_y_data(norm_data[:])
+    
+    
+    X_valid = valid_data[features].values
+    X_valid = reshape_x_data(X_valid)
+    y_valid = reshape_y_data(norm_data[train_percent:-test_val_precent])
+
+    
+    X_test = test_data[features].values
+    X_test = reshape_x_data(X_test)
+    y_test = reshape_y_data(test_data[f_index])
+
+    orig_y_test = reshape_y_data(orig_y_test)
+
+    # Check for NaN values
+    if np.isnan(X_train).sum() > 0 or np.isnan(y_train).sum() > 0:
+        print('NaN values in X_train:', np.isnan(X_train).sum())
+        print('NaN values in y_train:', np.isnan(y_train).sum())
+        print('NaN values found in training data. Exiting function.')
+        return None, None, None, None, None, None, None
+    print('NaN values in X_train:', np.isnan(X_train).sum())
+    print('NaN values in y_train:', np.isnan(y_train).sum())
+
+    y = test_data['YEAR'][0]
+    d = test_data['DOY'][0]
+    h = test_data['HR'][0]
+                
+    y1 = test_data['YEAR'][len(test_data) -1]
+    d1 = test_data['DOY'][len(test_data) -1]
+    h1 = test_data['HR'][len(test_data) -1]
+    d = get_date_from_days_year_split(d,y)
+    x_dates = []        
+    for i in range (len(test_data)):
+        x_dates.append(get_date_from_days_year_split(test_data['DOY'][i], test_data['YEAR'][i]))
+    return [ X_train,y_train, X_test, y_test, X_valid, y_valid, x_dates]
 
 def get_date_from_days_year(d,y):
     return datetime.strptime('{} {}'.format(d,y ),'%j %Y')
@@ -446,14 +552,19 @@ def reshape_x_data(data):
     return data
 
 def reshape_y_data(data):
-    data = [ np.array(c) for c in data]
+    print('Original data:', data)
+    data = [np.array(c) for c in data]
+    print('After conversion to array:', data)
     data = np.array(data)
+    print('After stacking arrays:', data)
     data = data.reshape(data.shape[0], 1)
+    print('After reshaping:', data)
     return data
 
 def custom_loss_function(y_true, y_pred):
    squared_difference = tensorflow.square(y_true - y_pred)
-   return tensorflow.reduce_mean(squared_difference, axis=-1)
+   return tensorflow.reduce_mean(squared_difference, axis=-1)
+
 def plot_figure(x,y_test,y_preds_mean,y_preds_var,num_hours,label='Dst_index',
                 file_name=None, block=True, do_sdv=True,process_y_test=False, 
                 show_fig=False,

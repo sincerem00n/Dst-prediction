@@ -95,6 +95,7 @@ def test(start_hour, end_hour,models_directory='models',results_dir='results', f
                 ax_dates.append(current_date)
                 current_date = current_date + timedelta(days=1)
         input_shape = (X_train.shape[1], X_train.shape[2])
+        print('input_shape:', input_shape)
         
         log('Loading the model and its weights.')
         model.load_model(input_shape, 

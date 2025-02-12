@@ -62,6 +62,11 @@ def train_model(start_hour, end_hour,models_directory=w_dir, epochs=epochs):
         num_hours = k
         X_train,y_train, X_test, y_test, X_valid, y_valid,x_dates = load_training_and_testing_data(num_hours)
         
+        # Check the data
+        # print('X_train.shape:', X_train.shape)
+        # print('y_train sample:', y_train[:5])
+        
+
         input_shape = (X_train.shape[1], X_train.shape[2])
         model = DSTTModel()
         

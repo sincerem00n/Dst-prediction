@@ -22,6 +22,7 @@ import warnings
 warnings.filterwarnings("ignore")
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 try:
     import tensorflow as tf
@@ -294,6 +295,7 @@ class DSTTModel:
                     adam_lr=0.0001,
                     interval_type='hourly',
                     w_dir=None):
+        print('input_shape: ',input_shape)
         self.build_base_model(input_shape, kl_weight, dropout)
         self.models()
         self.compile(loss=loss, metrics=metrics, adam_lr=adam_lr)
